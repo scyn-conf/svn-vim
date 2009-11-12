@@ -28,6 +28,7 @@ call s:SvnInitializeVariable ("g:SvnBufferOrientation", "vertical")
 call s:SvnInitializeVariable ("g:SvnBufferSize", 80)
 call s:SvnInitializeVariable ("g:SvnBufferIsHidden", 1)
 call s:SvnInitializeVariable ("g:SvnBufferShowLines", 0)
+call s:SvnInitializeVariable ("g:SvnBinary", '/usr/bin/git')
 
 
 " Function: s:SvnCheckDir () {{{2
@@ -73,13 +74,13 @@ endfunction
 " The new buffer will contain the content argument
 " Args:
 " content: the content the new buffer should contain
-function! s:SvnCreateBuffer (content)
+" name: The name of the new buffer
+function! s:SvnCreateBuffer (content, name)
 	" Create the buffer
 	let buf_location = (g:SvnBufferLocation == "left") ? "topleft ": "topright "
 	let buf_orientation = (g:SvnBufferOrientation == "vertical") ? "vertical " : ""
 	let buf_size = g:SvnBufferSize
-	let t:SvnBufferName = localtime ()
-	let cmd = buf_location . buf_orientation . buf_size . ' new ' . t:SvnBufferName
+	let cmd = buf_location . buf_orientation . buf_size . ' new ' . a:name
 	silent! execute cmd
 	" Throwaway buffer options if necessary. This can be very useful for
 	" other plugins like FuzzyFinder or BufExplorer, as you don't necessary
@@ -110,6 +111,24 @@ function! s:SvnCreateBuffer (content)
 endfunction
 
 
-command! -nargs=1 SvnCreateBuffer	call s:SvnCreateBuffer(<q-args>)
-command! -nargs=1 SvnCheckDir		call s:SvnCheckDir(<q-args>)
-command! -nargs=1 SvnCheckBufferPath	call s:SvnCheckBufferPath(<q-args>)
+function! s:SvnCommand (args, bufname)
+	let svn_output = system (g:SvnBinary . " " . a:args)
+	call s:SvnCreateBuffer (svn_output, a:bufname)
+endfunction
+
+
+function! s:SvnStatus ()
+	call s:SvnCommand ('status', '_svn_status')
+endfunction
+
+function! s:SvnLog ()
+	call s:SvnCommand ('log', '_svn_log')
+endfunction
+
+
+command! -nargs=0 SvnStatus		call s:SvnStatus ()
+command! -nargs=0 SvnLog		call s:SvnLog ()
+command! -nargs=1 SvnCommand		call s:SvnCommand (<q-args>)
+command! -nargs=1 SvnCreateBuffer	call s:SvnCreateBuffer (<q-args>)
+command! -nargs=1 SvnCheckDir		call s:SvnCheckDir (<q-args>)
+command! -nargs=1 SvnCheckBufferPath	call s:SvnCheckBufferPath (<q-args>)
